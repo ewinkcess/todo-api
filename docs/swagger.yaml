@@ -1,0 +1,276 @@
+basePath: /
+definitions:
+  domain.Response:
+    properties:
+      data: {}
+      errors: {}
+      message:
+        type: string
+      status:
+        type: string
+    type: object
+  handler.CreateTodoInput:
+    properties:
+      description:
+        minLength: 3
+        type: string
+      title:
+        minLength: 3
+        type: string
+    required:
+    - title
+    type: object
+  handler.LoginInput:
+    properties:
+      email:
+        type: string
+      password:
+        minLength: 6
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  handler.RegisterInput:
+    properties:
+      email:
+        type: string
+      name:
+        minLength: 3
+        type: string
+      password:
+        minLength: 8
+        type: string
+    required:
+    - email
+    - name
+    - password
+    type: object
+  handler.UpdateTodoInput:
+    properties:
+      completed:
+        type: boolean
+      description:
+        minLength: 3
+        type: string
+      title:
+        minLength: 3
+        type: string
+    required:
+    - title
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: ewink@gmail.com
+    name: Ewink
+  description: REST API untuk manajemen Todo dengan autentikasi JWT
+  title: Todo API
+  version: "1.0"
+paths:
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Login dengan email dan password untuk mendapatkan JWT token
+      parameters:
+      - description: Data login
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.LoginInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/domain.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/domain.Response'
+      summary: Login user
+      tags:
+      - auth
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Mendaftarkan user baru dengan nama, email, dan password
+      parameters:
+      - description: Data registrasi
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.RegisterInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/domain.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/domain.Response'
+      summary: Register user baru
+      tags:
+      - auth
+  /todos:
+    get:
+      description: Mengambil semua todo milik user yang sedang login
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/domain.Response'
+      security:
+      - BearerAuth: []
+      summary: Ambil semua todo
+      tags:
+      - todos
+    post:
+      consumes:
+      - application/json
+      description: Membuat todo baru untuk user yang sedang login
+      parameters:
+      - description: Data todo
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.CreateTodoInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/domain.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/domain.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/domain.Response'
+      security:
+      - BearerAuth: []
+      summary: Buat todo baru
+      tags:
+      - todos
+  /todos/{id}:
+    delete:
+      description: Menghapus todo milik user berdasarkan ID
+      parameters:
+      - description: Todo ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/domain.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/domain.Response'
+      security:
+      - BearerAuth: []
+      summary: Hapus todo
+      tags:
+      - todos
+    get:
+      description: Mengambil satu todo milik user berdasarkan ID
+      parameters:
+      - description: Todo ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/domain.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/domain.Response'
+      security:
+      - BearerAuth: []
+      summary: Ambil todo berdasarkan ID
+      tags:
+      - todos
+    put:
+      consumes:
+      - application/json
+      description: Mengupdate todo milik user berdasarkan ID
+      parameters:
+      - description: Todo ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Data todo
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.UpdateTodoInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/domain.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/domain.Response'
+      security:
+      - BearerAuth: []
+      summary: Update todo
+      tags:
+      - todos
+securityDefinitions:
+  BearerAuth:
+    description: 'Masukkan token dengan format: Bearer <token>'
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

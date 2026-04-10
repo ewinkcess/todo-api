@@ -1,0 +1,84 @@
+# =============================================================================
+# Docker Compose Configuration
+# Menjalankan semua service yang dibutuhkan aplikasi secara bersamaan
+# Service: todo-api (aplikasi) + postgres (database)
+# =============================================================================
+version: "3.8"
+
+services:
+  # =============================================================================
+  # Service 1: PostgreSQL Database
+  # Harus dijalankan SEBELUM aplikasi agar koneksi database berhasil
+  # =============================================================================
+  postgres:
+    # Gunakan image PostgreSQL versi 15
+    image: postgres:15-alpine
+
+    # Nama container
+    container_name: todo-postgres
+
+    # Restart otomatis kalau container crash
+    restart: always
+
+    # Variabel environment untuk konfigurasi PostgreSQL
+    environment:
+      POSTGRES_USER: postgres         # Username database
+      POSTGRES_PASSWORD: postgres     # Password database
+      POSTGRES_DB: todo_db            # Nama database yang dibuat otomatis
+
+    # Port mapping — port 5432 di container diarahkan ke port 5432 di host
+    ports:
+      - "5432:5432"
+
+    # Volume untuk menyimpan data database secara permanen
+    # Tanpa ini data akan hilang saat container dihapus
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+    # Health check — memastikan PostgreSQL siap sebelum aplikasi jalan
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s   # Cek setiap 5 detik
+      timeout: 5s    # Timeout setelah 5 detik
+      retries: 5     # Coba maksimal 5 kali
+
+  # =============================================================================
+  # Service 2: Todo API Application
+  # Dijalankan SETELAH PostgreSQL siap
+  # =============================================================================
+  todo-api:
+    # Build dari Dockerfile di direktori saat ini
+    build: .
+
+    # Nama container
+    container_name: todo-api
+
+    # Restart otomatis kalau container crash
+    restart: always
+
+    # Port mapping — port 8080 di container diarahkan ke port 8080 di host
+    ports:
+      - "8080:8080"
+
+    # Variabel environment untuk aplikasi
+    # Menimpa nilai yang ada di file .env
+    environment:
+      DB_HOST: postgres       # Nama service PostgreSQL di atas — bukan localhost!
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_NAME: todo_db
+      DB_PORT: 5432
+      SERVER_PORT: 8080
+      JWT_SECRET: rahasia_restoran_kita_123
+
+    # Tunggu PostgreSQL sehat sebelum jalankan aplikasi
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+# =============================================================================
+# Volumes
+# Penyimpanan permanen untuk data PostgreSQL
+# =============================================================================
+volumes:
+  postgres_data:

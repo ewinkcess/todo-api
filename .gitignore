@@ -1,0 +1,18 @@
+# Environment variables — jangan pernah upload ke GitHub!
+.env
+
+# Binary hasil build
+main
+
+# Dependency vendor
+vendor/
+
+# MacOS files
+.DS_Store
+
+# IDE files
+.idea/
+.vscode/
+
+# Test coverage
+*.out
