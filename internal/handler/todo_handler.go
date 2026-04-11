@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"todo-api/internal/domain"
 	"todo-api/internal/service"
+	"todo-api/internal/utils"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
@@ -41,35 +42,50 @@ func GetUserID(c *gin.Context) (uint, bool) {
 	return userID.(uint), true
 }
 
+func (h *TodoHandler) bindAndValidate(c *gin.Context, input interface{}) bool {
+	if err := c.ShouldBindJSON(input); err != nil {
+		var validationErrors []string
+		for _, err := range err.(validator.ValidationErrors) {
+			validationErrors = append(validationErrors, formatValidationError(err))
+		}
+		c.Error(utils.ValidationError(validationErrors))
+		return false
+	}
+	return true
+}
+
 // GetAllTodos godoc
 // @Summary      Ambil semua todo
-// @Description  Mengambil semua todo milik user yang sedang login
+// @Description  Mengambil semua todo milik user dengan pagination dan filter
 // @Tags         todos
 // @Produce      json
 // @Security     BearerAuth
+// @Param        page      query int    false "Halaman ke berapa (default: 1)"
+// @Param        limit     query int    false "Jumlah data per halaman (default: 10)"
+// @Param        search    query string false "Cari berdasarkan judul"
+// @Param        completed query bool   false "Filter berdasarkan status"
 // @Success      200 {object} domain.Response
 // @Failure      401 {object} domain.Response
 // @Router       /todos [get]
 func (h *TodoHandler) GetAllTodos(c *gin.Context) {
 	userID, exists := GetUserID(c)
 	if !exists {
-		c.JSON(http.StatusUnauthorized, domain.NewErrorResponse(
-			"Akses ditolak",
-			"User tidak terautentikasi",
-		))
+		c.Error(utils.Unauthorized("User tidak terautentikasi"))
 		return
 	}
-	todos, err := h.service.GetAllTodos(userID)
+	var query domain.PaginationQuery
+	if err := c.ShouldBindQuery(&query); err != nil {
+		c.Error(utils.BadRequest("ID tidak valid", "ID harus berupa angka"))
+		return
+	}
+	result, err := h.service.GetAllTodos(userID, query)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, domain.NewErrorResponse(
-			"Gagal mengambil data todo",
-			err.Error(),
-		))
+		c.Error(utils.InternalServerError("Gagal mengambil data todo"))
 		return
 	}
 	c.JSON(http.StatusOK, domain.NewSuccessResponse(
 		"Data todo berhasil diambil",
-		todos,
+		result,
 	))
 }
 
@@ -87,26 +103,17 @@ func (h *TodoHandler) GetAllTodos(c *gin.Context) {
 func (h *TodoHandler) GetTodoByID(c *gin.Context) {
 	userID, exists := GetUserID(c)
 	if !exists {
-		c.JSON(http.StatusUnauthorized, domain.NewErrorResponse(
-			"Akses ditolak",
-			"User tidak terautentikasi",
-		))
+		c.Error(utils.Unauthorized("User tidak terautentikasi"))
 		return
 	}
 	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, domain.NewErrorResponse(
-			"ID tidak valid",
-			"ID harus berupa angka",
-		))
+		c.Error(utils.BadRequest("ID tidak valid", "ID harus berupa angka"))
 		return
 	}
 	todo, err := h.service.GetTodoByID(uint(id), userID)
 	if err != nil {
-		c.JSON(http.StatusNotFound, domain.NewErrorResponse(
-			"Todo tidak ditemukan",
-			"Todo dengan ID tersebut tidak ada",
-		))
+		c.Error(utils.NotFound("Todo tidak ditemukan"))
 		return
 	}
 	c.JSON(http.StatusOK, domain.NewSuccessResponse(
@@ -130,40 +137,21 @@ func (h *TodoHandler) GetTodoByID(c *gin.Context) {
 func (h *TodoHandler) CreateTodo(c *gin.Context) {
 	userID, exists := GetUserID(c)
 	if !exists {
-		c.JSON(http.StatusUnauthorized, domain.NewErrorResponse(
-			"Akses ditolak",
-			"User tidak terautentikasi",
-		))
+		c.Error(utils.Unauthorized("User tidak terautentikasi"))
 		return
 	}
+
 	var input CreateTodoInput
-	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, domain.NewErrorResponse(
-			"Format request tidak valid",
-			err.Error(),
-		))
-		return
-	}
-	if err := h.validate.Struct(input); err != nil {
-		var validationErrors []string
-		for _, err := range err.(validator.ValidationErrors) {
-			validationErrors = append(validationErrors, formatValidationError(err))
-		}
-		c.JSON(http.StatusBadRequest, domain.NewErrorResponse(
-			"Validasi gagal",
-			validationErrors,
-		))
+	if !h.bindAndValidate(c, &input) {
 		return
 	}
 
 	todo, err := h.service.CreateTodo(userID, input.Title, input.Description)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, domain.NewErrorResponse(
-			"Gagal memuat todo",
-			err.Error(),
-		))
+		c.Error(utils.BadRequest("Gagal membuat todo", err.Error()))
 		return
 	}
+
 	c.JSON(http.StatusCreated, domain.NewSuccessResponse(
 		"Todo berhasil dibuat",
 		todo,
@@ -186,48 +174,27 @@ func (h *TodoHandler) CreateTodo(c *gin.Context) {
 func (h *TodoHandler) UpdateTodo(c *gin.Context) {
 	userID, exists := GetUserID(c)
 	if !exists {
-		c.JSON(http.StatusUnauthorized, domain.NewErrorResponse(
-			"Akses ditolak",
-			"User tidak terautentikasi",
-		))
+		c.Error(utils.Unauthorized("User tidak terautentikasi"))
 		return
 	}
+
 	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, domain.NewErrorResponse(
-			"ID tidak valid",
-			"ID harus berupa angka",
-		))
+		c.Error(utils.BadRequest("ID tidak valid", "ID harus berupa angka"))
 		return
 	}
-	var input UpdateTodoInput
 
-	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, domain.NewErrorResponse(
-			"Format request tidak valid",
-			err.Error(),
-		))
+	var input UpdateTodoInput
+	if !h.bindAndValidate(c, &input) {
 		return
 	}
-	if err := h.validate.Struct(input); err != nil {
-		var validationErrors []string
-		for _, err := range err.(validator.ValidationErrors) {
-			validationErrors = append(validationErrors, formatValidationError(err))
-		}
-		c.JSON(http.StatusBadRequest, domain.NewErrorResponse(
-			"Validasi gagal",
-			validationErrors,
-		))
-		return
-	}
+
 	todo, err := h.service.UpdateTodo(uint(id), userID, input.Title, input.Description, input.Completed)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, domain.NewErrorResponse(
-			"Gagal mengupdate todo",
-			err.Error(),
-		))
+		c.Error(utils.BadRequest("Gagal mengupdate todo", err.Error()))
 		return
 	}
+
 	c.JSON(http.StatusOK, domain.NewSuccessResponse(
 		"Todo berhasil diupdate",
 		todo,
@@ -248,29 +215,22 @@ func (h *TodoHandler) UpdateTodo(c *gin.Context) {
 func (h *TodoHandler) DeleteTodo(c *gin.Context) {
 	userID, exists := GetUserID(c)
 	if !exists {
-		c.JSON(http.StatusUnauthorized, domain.NewErrorResponse(
-			"Akses ditolak",
-			"User tidak terautentikasi",
-		))
+		c.Error(utils.Unauthorized("User tidak terautentikasi"))
 		return
 	}
+
 	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, domain.NewErrorResponse(
-			"ID tidak valid",
-			"Id harus berupa angka",
-		))
+		c.Error(utils.BadRequest("ID tidak valid", "ID harus berupa angka"))
 		return
 	}
 
 	err = h.service.DeleteTodo(uint(id), userID)
 	if err != nil {
-		c.JSON(http.StatusNotFound, domain.NewErrorResponse(
-			"Gagal menghapus todo",
-			err.Error(),
-		))
+		c.Error(utils.NotFound("Gagal menghapus todo"))
 		return
 	}
+
 	c.JSON(http.StatusOK, domain.NewSuccessResponse(
 		"Todo berhasil dihapus",
 		nil,

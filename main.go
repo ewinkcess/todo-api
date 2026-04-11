@@ -56,6 +56,8 @@ func main() {
 	router := gin.Default()
 	router.Use(middleware.LoggerMiddleware())
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	router.Use(middleware.LoggerMiddleware())
+	router.Use(middleware.ErrorHandler())
 
 	auth := router.Group("/auth")
 	auth.Use(middleware.RateLimiter(5, time.Minute))

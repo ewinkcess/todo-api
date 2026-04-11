@@ -5,6 +5,7 @@ import (
 	"strings"
 	"todo-api/internal/domain"
 	"todo-api/internal/service"
+	"todo-api/internal/utils"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
@@ -70,10 +71,7 @@ type LoginInput struct {
 func (h *AuthHandler) Register(c *gin.Context) {
 	var input RegisterInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, domain.NewErrorResponse(
-			"Format request tidak valid",
-			err.Error(),
-		))
+		c.Error(utils.BadRequest("Format request tidak valid", err.Error()))
 		return
 	}
 	if err := h.validate.Struct(input); err != nil {
@@ -81,19 +79,13 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		for _, err := range err.(validator.ValidationErrors) {
 			validationErrors = append(validationErrors, formatValidationError(err))
 		}
-		c.JSON(http.StatusBadRequest, domain.NewErrorResponse(
-			"Validasi gagal",
-			validationErrors,
-		))
+		c.Error(utils.ValidationError(validationErrors))
 		return
 	}
 
 	user, err := h.service.Register(input.Name, input.Email, input.Password)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, domain.NewErrorResponse(
-			"Registrasi gagal",
-			err.Error(),
-		))
+		c.Error(utils.BadRequest("Registrasi gagal", err.Error()))
 		return
 	}
 	c.JSON(http.StatusCreated, domain.NewSuccessResponse(
@@ -121,10 +113,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	var input LoginInput
 
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, domain.NewErrorResponse(
-			"Format request tidak valid",
-			err.Error(),
-		))
+		c.Error(utils.BadRequest("Format request tidak valid", err.Error()))
 		return
 	}
 	if err := h.validate.Struct(input); err != nil {
@@ -132,18 +121,12 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		for _, err := range err.(validator.ValidationErrors) {
 			validationErrors = append(validationErrors, formatValidationError(err))
 		}
-		c.JSON(http.StatusBadRequest, domain.NewErrorResponse(
-			"Validasi gagal",
-			validationErrors,
-		))
+		c.Error(utils.ValidationError(validationErrors))
 		return
 	}
 	token, err := h.service.Login(input.Email, input.Password)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, domain.NewErrorResponse(
-			"Login gagal",
-			err.Error(),
-		))
+		c.Error(utils.Unauthorized("Email atau password salah"))
 		return
 	}
 	c.JSON(http.StatusOK, domain.NewSuccessResponse(

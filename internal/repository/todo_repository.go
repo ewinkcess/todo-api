@@ -7,7 +7,7 @@ import (
 )
 
 type TodoRepository interface {
-	FindAll(userID uint) ([]domain.Todo, error)
+	FindAll(userID uint, query domain.PaginationQuery) ([]domain.Todo, int64, error)
 	FindByID(id, userID uint) (*domain.Todo, error)
 	Create(todo *domain.Todo) error
 	Update(todo *domain.Todo) error
@@ -22,10 +22,19 @@ func NewTodoRepository(db *gorm.DB) TodoRepository {
 	return &todoRepository{db: db}
 }
 
-func (r *todoRepository) FindAll(userID uint) ([]domain.Todo, error) {
+func (r *todoRepository) FindAll(userID uint, query domain.PaginationQuery) ([]domain.Todo, int64, error) {
 	var todos []domain.Todo
-	result := r.db.Where("user_id = ?", userID).Find(&todos)
-	return todos, result.Error
+	var total int64
+	db := r.db.Where("user_id = ?", userID)
+	if query.Search != "" {
+		db = db.Where("title ILIKE ?", "%"+query.Search+"%")
+	}
+	if query.Completed != nil {
+		db = db.Where("completed = ?", *query.Completed)
+	}
+	db.Model(&domain.Todo{}).Count(&total)
+	result := db.Offset(query.Offset()).Limit(query.Limit).Find(&todos)
+	return todos, total, result.Error
 }
 
 func (r *todoRepository) FindByID(id, userID uint) (*domain.Todo, error) {

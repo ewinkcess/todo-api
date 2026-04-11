@@ -7,7 +7,7 @@ import (
 )
 
 type TodoService interface {
-	GetAllTodos(userID uint) ([]domain.Todo, error)
+	GetAllTodos(userID uint, query domain.PaginationQuery) (*domain.PaginationResponse, error)
 	GetTodoByID(id, userID uint) (*domain.Todo, error)
 	CreateTodo(userID uint, title, description string) (*domain.Todo, error)
 	UpdateTodo(id, userID uint, title, description string, comleted bool) (*domain.Todo, error)
@@ -22,8 +22,29 @@ func NewTodoService(repo repository.TodoRepository) TodoService {
 	return &todoService{repo: repo}
 }
 
-func (s *todoService) GetAllTodos(userID uint) ([]domain.Todo, error) {
-	return s.repo.FindAll(userID)
+func (s *todoService) GetAllTodos(userID uint, query domain.PaginationQuery) (*domain.PaginationResponse, error) {
+	query.SetDefault()
+
+	todos, total, err := s.repo.FindAll(userID, query)
+	if err != nil {
+		return nil, err
+	}
+
+	totalPages := int(total) / query.Limit
+	if int(total)%query.Limit != 0 {
+		totalPages++
+	}
+
+	response := &domain.PaginationResponse{
+		Meta: domain.PaginationMeta{
+			Page:       query.Page,
+			Limit:      query.Limit,
+			TotalData:  total,
+			TotalPages: totalPages,
+		},
+		Data: todos,
+	}
+	return response, nil
 }
 
 func (s *todoService) GetTodoByID(id, userID uint) (*domain.Todo, error) {
