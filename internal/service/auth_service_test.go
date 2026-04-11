@@ -1,10 +1,3 @@
-// ============================================
-// FILE: internal/service/auth_service_test.go
-// Analogi: Tim quality control yang mengecek
-//
-//	resep auth koki sudah benar
-//
-// ============================================
 package service
 
 import (
@@ -18,11 +11,6 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-// ============================================
-// Mock User Repository
-// ============================================
-
-// MockUserRepository adalah tiruan dari user repository asli
 type MockUserRepository struct {
 	mock.Mock
 }
@@ -33,6 +21,19 @@ func (m *MockUserRepository) FindByEmail(email string) (*domain.User, error) {
 		return nil, args.Error(1)
 	}
 	return args.Get(0).(*domain.User), args.Error(1)
+}
+
+func (m *MockUserRepository) FindByID(id uint) (*domain.User, error) {
+	args := m.Called(id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*domain.User), args.Error(1)
+}
+
+func (m *MockUserRepository) Update(user *domain.User) error {
+	args := m.Called(user)
+	return args.Error(0)
 }
 
 func (m *MockUserRepository) Create(user *domain.User) error {
@@ -47,9 +48,7 @@ func (m *MockUserRepository) Create(user *domain.User) error {
 func TestRegister_Success(t *testing.T) {
 	mockRepo := new(MockUserRepository)
 
-	// Email belum terdaftar — FindByEmail kembalikan error
 	mockRepo.On("FindByEmail", "ewink@gmail.com").Return(nil, errors.New("record not found"))
-	// Create berhasil — kembalikan nil
 	mockRepo.On("Create", mock.AnythingOfType("*domain.User")).Return(nil)
 
 	authService := NewAuthService(mockRepo)
@@ -59,7 +58,7 @@ func TestRegister_Success(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "Ewink", user.Name)
 	assert.Equal(t, "ewink@gmail.com", user.Email)
-	assert.NotEmpty(t, user.Password) // Password harus sudah terenkripsi
+	assert.NotEmpty(t, user.Password)
 	mockRepo.AssertExpectations(t)
 }
 
@@ -71,7 +70,6 @@ func TestRegister_EmailAlreadyExists(t *testing.T) {
 		Email: "ewink@gmail.com",
 	}
 
-	// Email sudah terdaftar — FindByEmail kembalikan user
 	mockRepo.On("FindByEmail", "ewink@gmail.com").Return(existingUser, nil)
 
 	authService := NewAuthService(mockRepo)
@@ -89,13 +87,10 @@ func TestRegister_EmailAlreadyExists(t *testing.T) {
 // ============================================
 
 func TestLogin_Success(t *testing.T) {
-	// Set JWT_SECRET untuk testing
 	os.Setenv("JWT_SECRET", "rahasia_testing")
 
 	mockRepo := new(MockUserRepository)
 
-	// Buat user dengan password terenkripsi
-	// Password asli: "password123"
 	existingUser := &domain.User{
 		ID:       1,
 		Email:    "ewink@gmail.com",
@@ -109,7 +104,7 @@ func TestLogin_Success(t *testing.T) {
 	token, err := authService.Login("ewink@gmail.com", "password123")
 
 	assert.NoError(t, err)
-	assert.NotEmpty(t, token) // Token harus ada
+	assert.NotEmpty(t, token)
 	mockRepo.AssertExpectations(t)
 }
 
@@ -126,7 +121,6 @@ func TestLogin_WrongPassword(t *testing.T) {
 
 	authService := NewAuthService(mockRepo)
 
-	// Login dengan password salah
 	token, err := authService.Login("ewink@gmail.com", "passwordsalah")
 
 	assert.Error(t, err)
@@ -138,7 +132,6 @@ func TestLogin_WrongPassword(t *testing.T) {
 func TestLogin_EmailNotFound(t *testing.T) {
 	mockRepo := new(MockUserRepository)
 
-	// Email tidak ditemukan
 	mockRepo.On("FindByEmail", "tidakada@gmail.com").Return(nil, errors.New("record not found"))
 
 	authService := NewAuthService(mockRepo)
