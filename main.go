@@ -52,12 +52,22 @@ func main() {
 	userRepo := repository.NewUserRepository(database.DB)
 	authService := service.NewAuthService(userRepo)
 	authHandler := handler.NewAuthHandler(authService)
+	userService := service.NewUserService(userRepo)
+	userHandler := handler.NewUserHandler(userService)
 
 	router := gin.Default()
 	router.Use(middleware.LoggerMiddleware())
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	router.Use(middleware.LoggerMiddleware())
 	router.Use(middleware.ErrorHandler())
+
+	users := router.Group("/users")
+	users.Use(middleware.AuthMiddleware())
+	{
+		users.GET("/me", userHandler.GetProfile)
+		users.PUT("/me", userHandler.UpdateProfile)
+		users.PUT("/me/password", userHandler.UpdatePassword)
+	}
 
 	auth := router.Group("/auth")
 	auth.Use(middleware.RateLimiter(5, time.Minute))
@@ -66,7 +76,6 @@ func main() {
 		auth.POST("/login", authHandler.Login)
 	}
 
-	// Langkah 8 — Rute protected (wajib lewat middleware)
 	todos := router.Group("/todos")
 	todos.Use(middleware.AuthMiddleware())
 	{
@@ -77,7 +86,6 @@ func main() {
 		todos.DELETE("/:id", todoHandler.DeleteTodo)
 	}
 
-	// Langkah 9 — Buka restoran
 	log.Println("Restoran Todo API buka di port", cfg.ServerPort)
 	if err := router.Run(":" + cfg.ServerPort); err != nil {
 		log.Fatal("Restoran gagal dibuka:", err)
