@@ -1,7 +1,3 @@
-// ============================================
-// FILE: main.go
-// ============================================
-
 // @title           Todo API
 // @version         1.0
 // @description     REST API untuk manajemen Todo dengan autentikasi JWT
@@ -16,7 +12,6 @@
 // @in                         header
 // @name                       Authorization
 // @description                Masukkan token dengan format: Bearer <token>
-
 package main
 
 import (
@@ -43,7 +38,7 @@ func main() {
 	defer middleware.Logger.Sync()
 	cfg := config.LoadConfig()
 	database.ConnectDatabase(cfg)
-	database.DB.AutoMigrate(&domain.User{})
+	database.DB.AutoMigrate(&domain.User{}, &domain.Todo{}, &domain.Category{})
 
 	todoRepo := repository.NewTodoRepository(database.DB)
 	todoService := service.NewTodoService(todoRepo)
@@ -55,19 +50,15 @@ func main() {
 	userService := service.NewUserService(userRepo)
 	userHandler := handler.NewUserHandler(userService)
 
+	categoryRepo := repository.NewCategoryRepository(database.DB)
+	categoryService := service.NewCategoryService(categoryRepo)
+	categoryHandler := handler.NewCategoryHandler(categoryService)
+
 	router := gin.Default()
 	router.Use(middleware.LoggerMiddleware())
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	router.Use(middleware.LoggerMiddleware())
 	router.Use(middleware.ErrorHandler())
-
-	users := router.Group("/users")
-	users.Use(middleware.AuthMiddleware())
-	{
-		users.GET("/me", userHandler.GetProfile)
-		users.PUT("/me", userHandler.UpdateProfile)
-		users.PUT("/me/password", userHandler.UpdatePassword)
-	}
 
 	auth := router.Group("/auth")
 	auth.Use(middleware.RateLimiter(5, time.Minute))
@@ -84,6 +75,23 @@ func main() {
 		todos.POST("", todoHandler.CreateTodo)
 		todos.PUT("/:id", todoHandler.UpdateTodo)
 		todos.DELETE("/:id", todoHandler.DeleteTodo)
+	}
+	users := router.Group("/users")
+	users.Use(middleware.AuthMiddleware())
+	{
+		users.GET("/me", userHandler.GetProfile)
+		users.PUT("/me", userHandler.UpdateProfile)
+		users.PUT("/me/password", userHandler.UpdatePassword)
+	}
+
+	categories := router.Group("/categories")
+	categories.Use(middleware.AuthMiddleware())
+	{
+		categories.GET("", categoryHandler.GetAllCategories)
+		categories.GET("/:id", categoryHandler.GetCategoryByID)
+		categories.POST("", categoryHandler.CreateCategory)
+		categories.PUT("/:id", categoryHandler.UpdateCategory)
+		categories.DELETE("/:id", categoryHandler.DeleteCategory)
 	}
 
 	log.Println("Restoran Todo API buka di port", cfg.ServerPort)

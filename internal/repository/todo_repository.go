@@ -32,14 +32,17 @@ func (r *todoRepository) FindAll(userID uint, query domain.PaginationQuery) ([]d
 	if query.Completed != nil {
 		db = db.Where("completed = ?", *query.Completed)
 	}
+	if query.CategoryID != nil {
+		db = db.Where("category_id = ?", *query.CategoryID)
+	}
 	db.Model(&domain.Todo{}).Count(&total)
-	result := db.Offset(query.Offset()).Limit(query.Limit).Find(&todos)
+	result := db.Preload("Category").Offset(query.Offset()).Limit(query.Limit).Find(&todos)
 	return todos, total, result.Error
 }
 
 func (r *todoRepository) FindByID(id, userID uint) (*domain.Todo, error) {
 	var todo domain.Todo
-	result := r.db.Where("id = ? AND user_id = ?", id, userID).First(&todo)
+	result := r.db.Preload("Category").Where("id = ? AND user_id = ?", id, userID).First(&todo)
 	return &todo, result.Error
 }
 

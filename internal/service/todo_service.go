@@ -9,7 +9,7 @@ import (
 type TodoService interface {
 	GetAllTodos(userID uint, query domain.PaginationQuery) (*domain.PaginationResponse, error)
 	GetTodoByID(id, userID uint) (*domain.Todo, error)
-	CreateTodo(userID uint, title, description string) (*domain.Todo, error)
+	CreateTodo(userID uint, title, description string, categoryID *uint) (*domain.Todo, error)
 	UpdateTodo(id, userID uint, title, description string, comleted bool) (*domain.Todo, error)
 	DeleteTodo(id, userID uint) error
 }
@@ -51,12 +51,13 @@ func (s *todoService) GetTodoByID(id, userID uint) (*domain.Todo, error) {
 	return s.repo.FindByID(id, userID)
 }
 
-func (s *todoService) CreateTodo(userID uint, title, description string) (*domain.Todo, error) {
+func (s *todoService) CreateTodo(userID uint, title, description string, categoryID *uint) (*domain.Todo, error) {
 	if title == "" {
 		return nil, errors.New("judul todo tidak boleh kosong")
 	}
 	todo := &domain.Todo{
 		UserID:      userID,
+		CategoryID:  categoryID,
 		Title:       title,
 		Description: description,
 		Completed:   false,

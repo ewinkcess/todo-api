@@ -1,10 +1,11 @@
 package domain
 
 type PaginationQuery struct {
-	Page      int    `form:"page"`
-	Limit     int    `form:"limit"`
-	Search    string `form:"search"`
-	Completed *bool  `form:"completed"`
+	Page       int    `form:"page"`
+	Limit      int    `form:"limit"`
+	Search     string `form:"search"`
+	Completed  *bool  `form:"completed"`
+	CategoryID *uint  `form:"category_id"`
 }
 
 type PaginationMeta struct {

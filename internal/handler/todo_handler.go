@@ -26,6 +26,7 @@ func NewTodoHandler(service service.TodoService) *TodoHandler {
 type CreateTodoInput struct {
 	Title       string `json:"title"       validate:"required,min=3"`
 	Description string `json:"description" validate:"omitempty,min=3"`
+	CategoryID  *uint  `json:"category_id"`
 }
 
 type UpdateTodoInput struct {
@@ -146,7 +147,7 @@ func (h *TodoHandler) CreateTodo(c *gin.Context) {
 		return
 	}
 
-	todo, err := h.service.CreateTodo(userID, input.Title, input.Description)
+	todo, err := h.service.CreateTodo(userID, input.Title, input.Description, input.CategoryID)
 	if err != nil {
 		c.Error(utils.BadRequest("Gagal membuat todo", err.Error()))
 		return

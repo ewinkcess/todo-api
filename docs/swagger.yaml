@@ -9,6 +9,16 @@ definitions:
       status:
         type: string
     type: object
+  handler.CreateCategoryInput:
+    properties:
+      color:
+        type: string
+      name:
+        minLength: 3
+        type: string
+    required:
+    - name
+    type: object
   handler.CreateTodoInput:
     properties:
       description:
@@ -45,6 +55,39 @@ definitions:
     - email
     - name
     - password
+    type: object
+  handler.UpdateCategoryInput:
+    properties:
+      color:
+        type: string
+      name:
+        minLength: 3
+        type: string
+    required:
+    - name
+    type: object
+  handler.UpdatePasswordInput:
+    properties:
+      new_password:
+        minLength: 8
+        type: string
+      old_password:
+        minLength: 8
+        type: string
+    required:
+    - new_password
+    - old_password
+    type: object
+  handler.UpdateProfileInput:
+    properties:
+      email:
+        type: string
+      name:
+        minLength: 3
+        type: string
+    required:
+    - email
+    - name
     type: object
   handler.UpdateTodoInput:
     properties:
@@ -124,9 +167,169 @@ paths:
       summary: Register user baru
       tags:
       - auth
+  /categories:
+    get:
+      description: Mengambil semua kategori milik user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/domain.Response'
+      security:
+      - BearerAuth: []
+      summary: Ambil semua kategori
+      tags:
+      - categories
+    post:
+      consumes:
+      - application/json
+      description: Membuat kategori baru untuk user yang sedang login
+      parameters:
+      - description: Data kategori
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.CreateCategoryInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/domain.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/domain.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/domain.Response'
+      security:
+      - BearerAuth: []
+      summary: Buat kategori baru
+      tags:
+      - categories
+  /categories/{id}:
+    delete:
+      description: Menghapus kategori milik user berdasarkan ID
+      parameters:
+      - description: Category ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/domain.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/domain.Response'
+      security:
+      - BearerAuth: []
+      summary: Hapus kategori
+      tags:
+      - categories
+    get:
+      description: Mengambil satu kategori milik user berdasarkan ID
+      parameters:
+      - description: Category ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/domain.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/domain.Response'
+      security:
+      - BearerAuth: []
+      summary: Ambil kategori berdasarkan ID
+      tags:
+      - categories
+    put:
+      consumes:
+      - application/json
+      description: Mengupdate kategori milik user berdasarkan ID
+      parameters:
+      - description: Category ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Data kategori
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.UpdateCategoryInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/domain.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/domain.Response'
+      security:
+      - BearerAuth: []
+      summary: Update kategori
+      tags:
+      - categories
   /todos:
     get:
-      description: Mengambil semua todo milik user yang sedang login
+      description: Mengambil semua todo milik user dengan pagination dan filter
+      parameters:
+      - description: 'Halaman ke berapa (default: 1)'
+        in: query
+        name: page
+        type: integer
+      - description: 'Jumlah data per halaman (default: 10)'
+        in: query
+        name: limit
+        type: integer
+      - description: Cari berdasarkan judul
+        in: query
+        name: search
+        type: string
+      - description: Filter berdasarkan status
+        in: query
+        name: completed
+        type: boolean
       produces:
       - application/json
       responses:
@@ -267,6 +470,88 @@ paths:
       summary: Update todo
       tags:
       - todos
+  /users/me:
+    get:
+      description: Mengambil data profil user yang sedang login
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/domain.Response'
+      security:
+      - BearerAuth: []
+      summary: Ambil profil user
+      tags:
+      - users
+    put:
+      consumes:
+      - application/json
+      description: Mengupdate nama dan email user yang sedang login
+      parameters:
+      - description: Data profil
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.UpdateProfileInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/domain.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/domain.Response'
+      security:
+      - BearerAuth: []
+      summary: Update profil user
+      tags:
+      - users
+  /users/me/password:
+    put:
+      consumes:
+      - application/json
+      description: Mengganti password user yang sedang login
+      parameters:
+      - description: Data password
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.UpdatePasswordInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/domain.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/domain.Response'
+      security:
+      - BearerAuth: []
+      summary: Ganti password
+      tags:
+      - users
 securityDefinitions:
   BearerAuth:
     description: 'Masukkan token dengan format: Bearer <token>'
