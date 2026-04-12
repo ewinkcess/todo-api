@@ -1,6 +1,3 @@
-// ============================================
-// FILE: internal/service/todo_service_test.go
-// ============================================
 package service
 
 import (
@@ -45,6 +42,10 @@ func (m *MockTodoRepository) Delete(id, userID uint) error {
 	return args.Error(0)
 }
 
+// ============================================
+// Test GetAllTodos
+// ============================================
+
 func TestGetAllTodos_Success(t *testing.T) {
 	mockRepo := new(MockTodoRepository)
 
@@ -54,7 +55,6 @@ func TestGetAllTodos_Success(t *testing.T) {
 	}
 
 	query := domain.PaginationQuery{Page: 1, Limit: 10}
-
 	mockRepo.On("FindAll", uint(1), query).Return(expectedTodos, int64(2), nil)
 
 	todoService := NewTodoService(mockRepo)
@@ -89,6 +89,10 @@ func TestGetAllTodos_WithSearch(t *testing.T) {
 	mockRepo.AssertExpectations(t)
 }
 
+// ============================================
+// Test CreateTodo
+// ============================================
+
 func TestCreateTodo_Success(t *testing.T) {
 	mockRepo := new(MockTodoRepository)
 
@@ -96,13 +100,30 @@ func TestCreateTodo_Success(t *testing.T) {
 
 	todoService := NewTodoService(mockRepo)
 
-	todo, err := todoService.CreateTodo(uint(1), "Belajar Golang", "Deskripsi todo")
+	todo, err := todoService.CreateTodo(uint(1), "Belajar Golang", "Deskripsi todo", nil)
 
 	assert.NoError(t, err)
 	assert.Equal(t, "Belajar Golang", todo.Title)
 	assert.Equal(t, "Deskripsi todo", todo.Description)
 	assert.Equal(t, uint(1), todo.UserID)
+	assert.Nil(t, todo.CategoryID)
 	assert.False(t, todo.Completed)
+	mockRepo.AssertExpectations(t)
+}
+
+func TestCreateTodo_WithCategory(t *testing.T) {
+	mockRepo := new(MockTodoRepository)
+
+	mockRepo.On("Create", mock.AnythingOfType("*domain.Todo")).Return(nil)
+
+	todoService := NewTodoService(mockRepo)
+
+	categoryID := uint(1)
+	todo, err := todoService.CreateTodo(uint(1), "Belajar Golang", "Deskripsi todo", &categoryID)
+
+	assert.NoError(t, err)
+	assert.Equal(t, "Belajar Golang", todo.Title)
+	assert.Equal(t, &categoryID, todo.CategoryID)
 	mockRepo.AssertExpectations(t)
 }
 
@@ -110,12 +131,16 @@ func TestCreateTodo_EmptyTitle(t *testing.T) {
 	mockRepo := new(MockTodoRepository)
 	todoService := NewTodoService(mockRepo)
 
-	todo, err := todoService.CreateTodo(uint(1), "", "Deskripsi todo")
+	todo, err := todoService.CreateTodo(uint(1), "", "Deskripsi todo", nil)
 
 	assert.Error(t, err)
 	assert.Nil(t, todo)
 	assert.Equal(t, "judul todo tidak boleh kosong", err.Error())
 }
+
+// ============================================
+// Test UpdateTodo
+// ============================================
 
 func TestUpdateTodo_Success(t *testing.T) {
 	mockRepo := new(MockTodoRepository)
@@ -154,6 +179,11 @@ func TestUpdateTodo_NotFound(t *testing.T) {
 	assert.Equal(t, "todo tidak ditemukan", err.Error())
 	mockRepo.AssertExpectations(t)
 }
+
+// ============================================
+// Test DeleteTodo
+// ============================================
+
 func TestDeleteTodo_Success(t *testing.T) {
 	mockRepo := new(MockTodoRepository)
 
