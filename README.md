@@ -102,6 +102,31 @@ http://localhost:8080/swagger/index.html
 | POST | /todos | Buat todo baru |
 | PUT | /todos/:id | Update todo |
 | DELETE | /todos/:id | Hapus todo |
+### Category (Butuh Token)
+| Method | Endpoint | Deskripsi |
+|--------|----------|-----------|
+| GET | /categories | Ambil semua kategori |
+| GET | /categories/:id | Ambil satu kategori |
+| POST | /categories | Buat kategori baru |
+| PUT | /categories/:id | Update kategori |
+| DELETE | /categories/:id | Hapus kategori |
+
+## 🚀 Fitur
+- ✅ Authentication (Register & Login)
+- ✅ JWT Authorization
+- ✅ CRUD Todo per user
+- ✅ Kategori Todo
+- ✅ User Profile
+- ✅ Input Validation
+- ✅ Error Handling yang konsisten
+- ✅ Rate Limiting
+- ✅ Logging dengan Zap
+- ✅ Unit Testing
+- ✅ Pagination & Filter
+- ✅ Docker & Docker Compose
+- ✅ API Documentation (Swagger)
+- ✅ CI/CD Pipeline
+- ✅ Deploy ke Render
 
 ## 🧪 Testing
 
