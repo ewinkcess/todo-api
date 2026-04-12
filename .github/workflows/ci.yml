@@ -24,7 +24,7 @@ jobs:
         run: go mod download
 
       - name: Run tests
-        run: go test ./... -v -cover
+        run: go test ./... -v
 
   deploy:
     name: Deploy to Render
