@@ -144,4 +144,7 @@ Authorization: Bearer <token>
     "description": "Belajar membuat REST API"
 }
 ```
+## 🌐 Live Demo
+API URL: https://todo-api-xxxx.onrender.com
+Swagger: https://todo-api-xxxx.onrender.com/swagger/index.html
 
