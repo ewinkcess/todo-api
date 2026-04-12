@@ -45,9 +45,6 @@ WORKDIR /app
 # Tidak perlu copy source code atau Go compiler ke production
 COPY --from=builder /app/main .
 
-# Copy file environment
-COPY .env .
-
 # Expose port aplikasi
 EXPOSE 8080
 
